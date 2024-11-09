@@ -1,101 +1,102 @@
-import pyautogui
-import random
 import tkinter as tk
+from PIL import Image, ImageTk
+import random
 
-x = 1400
-cycle = 0
-check = 1
+class AnimatedPet:
+    def __init__(self):
+        # Initialize main tkinter window
+        self.window = tk.Tk()
+        self.window.overrideredirect(True)  # Frameless window
+        self.window.wm_attributes('-topmost', True)
+        self.window.wm_attributes('-transparentcolor', 'black')
+        self.window.config(bg='black')
 
-idle_num = [1, 2, 3, 4]
-sleep_num = [10, 11, 12, 13, 15]
-walk_left = [6, 7]
-walk_right = [8, 9]
-special_events = [16, 17, 18]  # New events for blink, twitch, and head tilt
+        # Position in bottom-right corner on taskbar
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Adjust the position
+        self.x_position = screen_width - 110
+        self.y_position = screen_height - 105  
 
-event_number = random.choice(idle_num + sleep_num + walk_left + walk_right + special_events)
-impath = 'C:\\Users\\haile\\Documents\\GitHub\\Cat\\CatGifs\\'
+        # Set geometry with adjusted position
+        self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')  
 
-# Define random events
-def event(cycle, check, event_number, x):
-    if event_number in idle_num:
-        check = 0
-        print('idle')
-    elif event_number in walk_left:
-        check = 4
-        print('walking towards left')
-    elif event_number in walk_right:
-        check = 5
-        print('walking towards right')
-    elif event_number in sleep_num:
-        check = 2
-        print('sleep')
-    elif event_number == 16:
-        check = 6
-        print('blink')
-    elif event_number == 17:
-        check = 7
-        print('twitch')
-    elif event_number == 18:
-        check = 8
-        print('head tilt')
-    window.after(400 if check == 0 else 100, update, cycle, check, event_number, x)
+        # Load all animations as lists of frames
+        self.animations = {
+            "walking_right": self.load_gif_frames('CatGifs/WalkRight.gif'),
+            "walking_left": self.load_gif_frames('CatGifs/WalkLeft.gif'),
+            "idle": self.load_gif_frames('CatGifs/Idle.gif'),
+            "biscuits": self.load_gif_frames('CatGifs/Biscuits.gif'),
+            "ear_twitch": self.load_gif_frames('CatGifs/EarTwitch.gif'),
+            "blink": self.load_gif_frames('CatGifs/Blink.gif'),
+            "head_tilt": self.load_gif_frames('CatGifs/HeadTilt.gif'),
+            "sleeping": self.load_gif_frames('CatGifs/Snooze.gif'),
+        }
 
-# Function to loop through frames
-def gif_work(cycle, frames, event_number, first_num, last_num):
-    if cycle < len(frames) - 1:
-        cycle += 1
-    else:
-        cycle = 0
-        event_number = random.choice(idle_num + sleep_num + walk_left + walk_right + special_events)
-    return cycle, event_number
+        # Initial animation setup
+        self.current_animation = "idle"
+        self.frame_index = 0
+        self.animation_delay = 100  # Milliseconds between frames
 
-# Update function
-def update(cycle, check, event_number, x):
-    if check == 0:  # Idle
-        frame = idle[cycle]
-        cycle, event_number = gif_work(cycle, idle, event_number, 1, 9)
-    elif check == 2:  # Sleep
-        frame = sleep[cycle]
-        cycle, event_number = gif_work(cycle, sleep, event_number, 10, 15)
-    elif check == 4:  # Walk left
-        frame = walk_positive[cycle]
-        cycle, event_number = gif_work(cycle, walk_positive, event_number, 1, 9)
-        x -= 3
-    elif check == 5:  # Walk right
-        frame = walk_negative[cycle]
-        cycle, event_number = gif_work(cycle, walk_negative, event_number, 1, 9)
-        x += 3
-    elif check == 6:  # Blink
-        frame = blink[cycle]
-        cycle, event_number = gif_work(cycle, blink, event_number, 16, 16)
-    elif check == 7:  # Twitch
-        frame = twitch[cycle]
-        cycle, event_number = gif_work(cycle, twitch, event_number, 17, 17)
-    elif check == 8:  # Head tilt
-        frame = head_tilt[cycle]
-        cycle, event_number = gif_work(cycle, head_tilt, event_number, 18, 18)
+        # Repeat control for specific animations
+        self.repeat_count = 0
+        self.max_repeats = 2  # Repeat count for walking and sleeping animations
 
-    window.geometry(f'100x100+{x}+1050')
-    label.configure(image=frame)
-    window.after(1, event, cycle, check, event_number, x)
+        # Placeholder for displaying the image
+        self.label = tk.Label(self.window, bg='black')
+        self.label.pack()
 
-# Setup Tkinter window
-window = tk.Tk()
-idle = [tk.PhotoImage(file=impath + 'Idle.gif', format='gif -index %i' % i) for i in range(25)]
-sleep = [tk.PhotoImage(file=impath + 'Snooze.gif', format='gif -index %i' % i) for i in range(27)]
-walk_positive = [tk.PhotoImage(file=impath + 'WalkLeft.gif', format='gif -index %i' % i) for i in range(12)]
-walk_negative = [tk.PhotoImage(file=impath + 'WalkRight.gif', format='gif -index %i' % i) for i in range(12)]
-blink = [tk.PhotoImage(file=impath + 'Blink.gif', format='gif -index %i' % i) for i in range(8)]
-twitch = [tk.PhotoImage(file=impath + 'EarTwitch.gif', format='gif -index %i' % i) for i in range(8)]
-head_tilt = [tk.PhotoImage(file=impath + 'HeadTilt.gif', format='gif -index %i' % i) for i in range(20)]
+        # Start the update loop
+        self.update_animation()
+        self.window.mainloop()
 
-# Window configuration
-window.config(highlightbackground='black')
-label = tk.Label(window, bd=0, bg='black')
-window.overrideredirect(True)
-window.wm_attributes('-transparentcolor', 'black')
-label.pack()
+    def load_gif_frames(self, gif_path):
+        """Loads all frames of a GIF and returns them as a list of PhotoImages."""
+        frames = []
+        with Image.open(gif_path) as img:
+            for frame in range(img.n_frames):
+                img.seek(frame)
+                frame_image = ImageTk.PhotoImage(img.copy().convert("RGBA"))
+                frames.append(frame_image)
+        return frames
 
-# Start the program
-window.after(1, update, cycle, check, event_number, x)
-window.mainloop()
+    def update_animation(self):
+        # Get the frames for the current animation
+        frames = self.animations[self.current_animation]
+        self.label.configure(image=frames[self.frame_index])
+        
+        # Advance to the next frame and wrap around
+        self.frame_index = (self.frame_index + 1) % len(frames)
+        
+        # Check if we reached the end of the current animation
+        if self.frame_index == 0:
+            if self.current_animation in ["walking_right", "walking_left", "sleeping"]:
+                self.repeat_count += 1
+                if self.repeat_count >= self.max_repeats:
+                    # Reset repeat count and switch to a new animation
+                    self.repeat_count = 0
+                    self.current_animation = random.choice(list(self.animations.keys()))
+            else:
+                # For other animations, switch immediately to a new animation
+                self.current_animation = random.choice(list(self.animations.keys()))
+
+        # Movement logic for walking animations
+        screen_width = self.window.winfo_screenwidth()
+        if self.current_animation == "walking_right":
+            self.x_position += 4
+            if self.x_position > screen_width - 100:  # Ensure it stays within bounds
+                self.x_position = screen_width - 100
+        elif self.current_animation == "walking_left":
+            self.x_position -= 4
+            if self.x_position < 0:  # Ensure it stays within bounds
+                self.x_position = 0
+        
+        # Update window position
+        self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
+
+        # Schedule next frame update
+        self.window.after(self.animation_delay, self.update_animation)
+
+# Run the AnimatedPet
+AnimatedPet()
