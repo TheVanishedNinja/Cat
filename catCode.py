@@ -35,6 +35,10 @@ class AnimatedPet:
             "tail_twitch": self.load_gif_frames('CatGifs/TailTwitch.gif'),
         }
 
+        # Load static images
+        self.pick_up_image = ImageTk.PhotoImage(Image.open('CatGifs/PickUp.png').convert("RGBA"))
+        self.still_image = ImageTk.PhotoImage(Image.open('CatGifs/Still.png').convert("RGBA"))
+
         # Initial animation setup
         self.current_animation = "idle"
         self.frame_index = 0
@@ -47,6 +51,15 @@ class AnimatedPet:
         # Placeholder for displaying the image
         self.label = tk.Label(self.window, bg='black')
         self.label.pack()
+
+        # Drag-and-drop variables
+        self.is_dragging = False
+        self.current_position = (self.x_position, self.y_position)
+
+        # Bind mouse events for dragging
+        self.label.bind("<Button-1>", self.start_drag)
+        self.label.bind("<B1-Motion>", self.on_drag)
+        self.label.bind("<ButtonRelease-1>", self.end_drag)
 
         # Start the update loop
         self.update_animation()
@@ -63,6 +76,10 @@ class AnimatedPet:
         return frames
 
     def update_animation(self):
+        # If dragging, suspend all animations
+        if self.is_dragging:
+            return
+
         # Get the frames for the current animation
         frames = self.animations[self.current_animation]
         self.label.configure(image=frames[self.frame_index])
@@ -98,6 +115,50 @@ class AnimatedPet:
 
         # Schedule next frame update
         self.window.after(self.animation_delay, self.update_animation)
+
+    def start_drag(self, event):
+        """Start dragging the pet and stop animations."""
+        self.is_dragging = True
+        self.label.configure(image=self.pick_up_image)  # Show PickUp image
+        # Center on cursor immediately and prevent initial jump
+        self.x_position = event.x_root - 60
+        self.y_position = event.y_root - 15
+        self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
+
+    def on_drag(self, event):
+        """Drag the pet along with the cursor."""
+        if self.is_dragging:
+            self.window.geometry(f'100x100+{event.x_root-60}+{event.y_root-15}')  # Center on cursor
+
+    def end_drag(self, event):
+        """End the drag action and start the floating effect."""
+        self.is_dragging = False
+        self.label.configure(image=self.still_image)  # Show Still image upon drop
+        # Set new position to the current drop location
+        self.x_position = event.x_root - 50
+        self.y_position = event.y_root - 15
+        self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
+        self.window.after(500, self.float_down)  # Delay before floating down
+
+    def float_down(self):
+        """Animate floating down to the current position."""
+        target_y = self.window.winfo_screenheight() - 105  # Original bottom position
+        step_y = (target_y - self.y_position) // 10  # Divides the descent into steps
+
+        def move_down():
+            nonlocal step_y
+            if abs(self.y_position - target_y) > abs(step_y):
+                self.y_position += step_y
+                self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
+                self.window.after(50, move_down)
+            else:
+                # Snap to target position and reset animation
+                self.y_position = target_y
+                self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
+                self.current_animation = "idle"  # Reset to idle
+                self.update_animation()  # Resume animations
+
+        move_down()  # Start moving down
 
 # Run the AnimatedPet
 AnimatedPet()
