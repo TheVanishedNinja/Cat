@@ -1,6 +1,11 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import random
+import pystray  # System tray icon support
+from pystray import MenuItem as item
+import threading
+import os
+import sys
 
 class AnimatedPet:
     def __init__(self):
@@ -22,6 +27,12 @@ class AnimatedPet:
         # Set geometry with adjusted position
         self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')  
 
+        # Determine the base path where resources are located
+        if getattr(sys, 'frozen', False):  # If running as a bundled executable
+            self.base_path = sys._MEIPASS  # PyInstaller extracts files to this folder
+        else:
+            self.base_path = os.path.dirname(os.path.abspath(__file__))  # Running from source
+
         # Load all animations as lists of frames
         self.animations = {
             "walking_right": self.load_gif_frames('CatGifs/WalkRight.gif'),
@@ -36,8 +47,8 @@ class AnimatedPet:
         }
 
         # Load static images
-        self.pick_up_image = ImageTk.PhotoImage(Image.open('CatGifs/PickUp.png').convert("RGBA"))
-        self.still_image = ImageTk.PhotoImage(Image.open('CatGifs/Still.png').convert("RGBA"))
+        self.pick_up_image = ImageTk.PhotoImage(Image.open(self.get_resource_path('CatGifs/PickUp.png')).convert("RGBA"))
+        self.still_image = ImageTk.PhotoImage(Image.open(self.get_resource_path('CatGifs/Still.png')).convert("RGBA"))
 
         # Initial animation setup
         self.current_animation = "idle"
@@ -55,19 +66,28 @@ class AnimatedPet:
         # Drag-and-drop variables
         self.is_dragging = False
         self.current_position = (self.x_position, self.y_position)
+        self.is_visible = True  # Track visibility state
 
         # Bind mouse events for dragging
         self.label.bind("<Button-1>", self.start_drag)
         self.label.bind("<B1-Motion>", self.on_drag)
         self.label.bind("<ButtonRelease-1>", self.end_drag)
 
+        # Set up the tray icon in a separate thread
+        threading.Thread(target=self.setup_tray_icon, daemon=True).start()
+
         # Start the update loop
         self.update_animation()
         self.window.mainloop()
 
+    def get_resource_path(self, relative_path):
+        """Return the correct resource path whether running from source or executable."""
+        return os.path.join(self.base_path, relative_path)
+
     def load_gif_frames(self, gif_path):
         """Loads all frames of a GIF and returns them as a list of PhotoImages."""
         frames = []
+        gif_path = self.get_resource_path(gif_path)  # Correctly resolve the gif path
         with Image.open(gif_path) as img:
             for frame in range(img.n_frames):
                 img.seek(frame)
@@ -76,8 +96,8 @@ class AnimatedPet:
         return frames
 
     def update_animation(self):
-        # If dragging, suspend all animations
-        if self.is_dragging:
+        # If dragging or invisible, suspend all animations
+        if self.is_dragging or not self.is_visible:
             return
 
         # Get the frames for the current animation
@@ -103,11 +123,11 @@ class AnimatedPet:
         screen_width = self.window.winfo_screenwidth()
         if self.current_animation == "walking_right":
             self.x_position += 4
-            if self.x_position > screen_width - 100:  # Ensure it stays within bounds
+            if self.x_position > screen_width - 100:
                 self.x_position = screen_width - 100
         elif self.current_animation == "walking_left":
             self.x_position -= 4
-            if self.x_position < 0:  # Ensure it stays within bounds
+            if self.x_position < 0:
                 self.x_position = 0
         
         # Update window position
@@ -152,13 +172,41 @@ class AnimatedPet:
                 self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
                 self.window.after(50, move_down)
             else:
-                # Snap to target position and reset animation
                 self.y_position = target_y
                 self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
-                self.current_animation = "idle"  # Reset to idle
-                self.update_animation()  # Resume animations
+                self.current_animation = "idle"
+                self.update_animation()
 
         move_down()  # Start moving down
+
+    def setup_tray_icon(self):
+        """Set up the system tray icon with a toggle option."""
+        # Load the icon image for the tray
+        icon_image = Image.open(self.get_resource_path('CatGifs/Still.png'))
+
+        # Define menu actions
+        menu = (
+            item('Toggle Visibility', self.toggle_visibility),
+            item('Quit', self.quit_app)
+        )
+
+        # Create and run the tray icon
+        self.tray_icon = pystray.Icon("AnimatedPet", icon_image, "Animated Pet", menu)
+        self.tray_icon.run()
+
+    def toggle_visibility(self):
+        """Toggle the visibility of the animated pet."""
+        self.is_visible = not self.is_visible
+        if self.is_visible:
+            self.window.deiconify()  # Show the window
+            self.update_animation()  # Resume animation updates
+        else:
+            self.window.withdraw()  # Hide the window
+
+    def quit_app(self):
+        """Quit the application."""
+        self.tray_icon.stop()  # Stop the tray icon
+        self.window.quit()
 
 # Run the AnimatedPet
 AnimatedPet()
