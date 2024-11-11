@@ -32,6 +32,7 @@ class AnimatedPet:
             "blink": self.load_gif_frames('CatGifs/Blink.gif'),
             "head_tilt": self.load_gif_frames('CatGifs/HeadTilt.gif'),
             "sleeping": self.load_gif_frames('CatGifs/Snooze.gif'),
+            "tail_twitch": self.load_gif_frames('CatGifs/TailTwitch.gif'),
         }
 
         # Initial animation setup
