@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['catCode.py'],
-    pathex=['C:\\Users\\haile\\Documents\\GitHub\\Cat'],
+    pathex=['.'],
     binaries=[],
     datas=[('CatGifs/*', 'CatGifs')],
     hiddenimports=[],

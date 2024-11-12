@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk 
 from PIL import Image, ImageTk
 import random
 import pystray  # System tray icon support
@@ -140,7 +140,7 @@ class AnimatedPet:
         """Start dragging the pet and stop animations."""
         self.is_dragging = True
         self.label.configure(image=self.pick_up_image)  # Show PickUp image
-        # Center on cursor immediately and prevent initial jump
+        # Centered so it looks like you are picking it up by the scruff
         self.x_position = event.x_root - 60
         self.y_position = event.y_root - 15
         self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
@@ -148,7 +148,7 @@ class AnimatedPet:
     def on_drag(self, event):
         """Drag the pet along with the cursor."""
         if self.is_dragging:
-            self.window.geometry(f'100x100+{event.x_root-60}+{event.y_root-15}')  # Center on cursor
+            self.window.geometry(f'100x100+{event.x_root-60}+{event.y_root-15}')  # Cursor placement
 
     def end_drag(self, event):
         """End the drag action and start the floating effect."""
@@ -184,9 +184,9 @@ class AnimatedPet:
         # Load the icon image for the tray
         icon_image = Image.open(self.get_resource_path('CatGifs/Still.png'))
 
-        # Define menu actions
         menu = (
             item('Toggle Visibility', self.toggle_visibility),
+            item('Reset', self.reset_animation),
             item('Quit', self.quit_app)
         )
 
@@ -202,6 +202,15 @@ class AnimatedPet:
             self.update_animation()  # Resume animation updates
         else:
             self.window.withdraw()  # Hide the window
+
+    def reset_animation(self):
+        """Reset the animation state in case of glitches."""
+        self.current_animation = "idle"
+        self.frame_index = 0
+        self.x_position = self.window.winfo_screenwidth() - 110
+        self.y_position = self.window.winfo_screenheight() - 105
+        self.window.geometry(f'100x100+{self.x_position}+{self.y_position}')
+        self.update_animation()  # Restart animation
 
     def quit_app(self):
         """Quit the application."""
